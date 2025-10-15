@@ -782,10 +782,15 @@
       "type": "FOLDER"
     },
     {
-      "valueBoolean": true,
+      "valueBoolean": false,
       "className": "ToggleNode",
       "path": "pause",
       "type": "VALUE"
+    },
+    {
+      "className": "ButtonNode",
+      "path": "restart",
+      "type": "TRANSIENT"
     }
   ],
   "window": {
