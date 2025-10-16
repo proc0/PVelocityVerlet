@@ -7,7 +7,7 @@ int NUM_PARTICLES = 62;
 
 LazyGui gui;
 Particle[] particles = new Particle[NUM_PARTICLES];
-PVector defaultForce = new PVector(0, 98.0);
+PVector defaultForce = new PVector(0, 198.0);
 Grid grid;
 
 void settings() {
@@ -58,7 +58,7 @@ public class Particle {
   public color fill = color(204, 153, 0);
   public float mass = 1.1;
   public float radius = 5.0;
-  public float restitution = 1.5;
+  public float restitution = 0.8;
   
   public Particle() {}
 }
@@ -132,10 +132,14 @@ void checkCollision(Particle p1){
     float collisionDistance = p1.radius + p2.radius;
     
     if(distance <= collisionDistance){
+       collideV4(p1, p2);
+       //collideV3(p1, p2, collisionDistance - distance);
+       //collideV3(p2, p1);
+       
        //collideV1(p1, p2);
        //collideV1(p2, p1);
        
-       collideV2(p2, p1, collisionDistance - distance);
+       //collideV2(p2, p1, collisionDistance - distance - 0.01);
     }
   }
 }
@@ -144,7 +148,7 @@ void collideV1(Particle p1, Particle p2) {
   float mRatio = (p1.restitution + 1 + p2.mass)/(p1.mass + p2.mass);
   PVector vDiff = PVector.sub(p1.velocity, p2.velocity);
   PVector rDiff = PVector.sub(p1.position, p2.position);
-  PVector projection = vDiff.mult(PVector.dot(rDiff.normalize(), vDiff)/vDiff.magSq());
+  PVector projection = vDiff.mult(PVector.dot(vDiff, rDiff)/vDiff.magSq());
   
   p1.velocity = PVector.add(p1.velocity, projection.mult(mRatio));
 }
@@ -163,7 +167,38 @@ void collideV2(Particle p1, Particle p2, float distanceDifference) {
   p2.position = PVector.add(p2.position, PVector.div(repulse, p2.mass));
 }
 
-void checkBounds(Particle p) {
+void collideV3(Particle p1, Particle p2, float deltaDist) {
+  //float distance = PVector.dist(p2.position, p1.position);
+  //float dist = sqrt(p1.position.x*p1.position.x + p1.position.y*p1.position.y);
+  PVector normalDist = PVector.sub(p1.position, p2.position);
+  //PVector normal = PVector.div(normalDist, dist);
+  PVector normal = new PVector(normalDist.y, -normalDist.x);
+  
+  float projection = PVector.dot(p1.velocity, normal.normalize())*2;
+  p1.velocity = PVector.mult(normal, projection).sub(p1.velocity);
+  
+  PVector repulse = PVector.mult(normalDist.normalize(), deltaDist); // reapulsion
+  p1.position = PVector.add(p1.position, PVector.div(repulse, p1.mass));
+}
+
+void collideV4(Particle p1, Particle p2) {
+    PVector v = PVector.sub(p1.position, p2.position);
+    float minDist = p1.radius + p2.radius;
+    float dist = sqrt(v.x*v.x + v.y*v.y);
+    
+    if(dist < minDist){
+      
+      PVector normal = v.div(dist);
+      float totalMass = pow(p1.radius, 2) + pow(p2.radius, 2);
+      float massRatio = pow(p1.radius, 2)/totalMass;
+      float delta = 0.5*(minDist - dist);
+      
+      p1.position = PVector.add(p1.position, PVector.mult(normal, (1-massRatio)*delta));
+      p2.position = PVector.sub(p2.position, PVector.mult(normal, massRatio*delta));
+    }
+}
+
+void checkBoundsV1(Particle p) {
   Particle newP = new Particle();
  
   if(p.position.x - p.radius < 0) {
@@ -192,13 +227,32 @@ void checkBounds(Particle p) {
   
 }
 
+
+void checkBoundsV2(Particle p) {
+  if(p.position.x - p.radius < 0) {
+    p.position.x = p.radius;
+    p.velocity.x = -p.restitution*p.velocity.x;
+  } else if (p.position.x + p.radius > width) {
+    p.position.x = width - p.radius;
+    p.velocity.x = -p.restitution*p.velocity.x;
+  }
+  
+  if(p.position.y - p.radius < 0){
+    p.position.y = p.radius;
+    p.velocity.y = -p.restitution*p.velocity.y;
+  } else if (p.position.y + p.radius > height) {
+    p.position.y = height - p.radius;
+    p.velocity.y = -p.restitution*p.velocity.y;
+  }
+}
+
 void checkGridBounds(Particle p1){
   PVector p1cell = grid.place(p1);
   int px = (int)p1cell.x;
   int py = (int)p1cell.y;
   
   if(px == 0 || py == 0 || px == grid.numCols-1 || py == grid.numRows-1){
-     checkBounds(p1);
+     checkBoundsV2(p1);
   }
 
   if(px != (int)p1.cell.x || py != (int)p1.cell.y){
