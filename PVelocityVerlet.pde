@@ -7,7 +7,10 @@ int NUM_PARTICLES = 62;
 
 LazyGui gui;
 Particle[] particles = new Particle[NUM_PARTICLES];
-PVector defaultForce = new PVector(0, 198.0);
+PVector ZERO_FORCE = new PVector(0, 0);
+PVector GRAVITY = new PVector(0, 500.0);
+PVector defaultForce = ZERO_FORCE;
+
 Grid grid;
 
 void settings() {
@@ -34,14 +37,17 @@ void draw() {
   lastTime = currentTime;
   
   boolean pause = gui.toggle("pause");
+  boolean gravity = gui.toggle("gravity");
   boolean restart = gui.button("restart");
   
   if (pause) return;
   if(restart) initTest2(NUM_PARTICLES);
-  
+  if(gravity) defaultForce = defaultForce == GRAVITY ? ZERO_FORCE : GRAVITY;
+
   background(50);
   for(Particle particle : particles){
     checkGridBounds(particle);
+    repulse(particle);
   }
   for(Particle particle : particles){
     checkCollision(particle);
@@ -132,7 +138,9 @@ void checkCollision(Particle p1){
     float collisionDistance = p1.radius + p2.radius;
     
     if(distance <= collisionDistance){
-       collideV4(p1, p2);
+       collideV5(p1, p2);
+       //collideV4(p1, p2);
+       
        //collideV3(p1, p2, collisionDistance - distance);
        //collideV3(p2, p1);
        
@@ -196,6 +204,52 @@ void collideV4(Particle p1, Particle p2) {
       p1.position = PVector.add(p1.position, PVector.mult(normal, (1-massRatio)*delta));
       p2.position = PVector.sub(p2.position, PVector.mult(normal, massRatio*delta));
     }
+}
+
+void collideV5(Particle p1, Particle p2) {
+  PVector normal = PVector.sub(p1.position, p2.position);
+  PVector unitNormal = normal.normalize();
+  
+  PVector unitTangent = new PVector(-unitNormal.y, unitNormal.x);
+  float normalComponent1 = PVector.dot(p1.velocity, unitNormal);
+  float tangentComponent1 = PVector.dot(p1.velocity, unitTangent);
+  float normalComponent2 = PVector.dot(p2.velocity, unitNormal);
+  float tangentComponent2 = PVector.dot(p2.velocity, unitTangent);
+  
+  float totalMass = p1.mass + p2.mass;
+  float normalVelocity1 = (normalComponent1*(p1.mass - p2.mass) + 2*p2.mass*normalComponent2)/totalMass;
+  float normalVelocity2 = (normalComponent2*(p2.mass - p1.mass) + 2*p1.mass*normalComponent1)/totalMass;
+  
+  PVector normalVectorVelocity1 = PVector.mult(unitNormal, normalVelocity1);
+  PVector normalVectorVelocity2 = PVector.mult(unitNormal, normalVelocity2);
+  PVector tangentVectorVelocity1 = PVector.mult(unitTangent, tangentComponent1);
+  PVector tangentVectorVelocity2 = PVector.mult(unitTangent, tangentComponent2);
+  
+  p1.velocity = PVector.add(normalVectorVelocity1, tangentVectorVelocity1);
+  p2.velocity = PVector.add(normalVectorVelocity2, tangentVectorVelocity2);
+}
+
+void repulse(Particle p1){
+  ArrayList<Particle> neighbors = grid.getAdjacent(p1);
+  
+  for(Particle p2 : neighbors){
+    if(p1 == p2) continue;
+    
+    float distance = PVector.dist(p1.position, p2.position);
+    float collisionDistance = p1.radius + p2.radius;
+    
+    if(distance <= collisionDistance){
+      //collideV2(p2, p1, collisionDistance - distance - 0.01);
+      float deltaDist = (collisionDistance - distance)/2;
+      PVector repulse1 = PVector.mult(PVector.sub(p1.position, p2.position).normalize(), deltaDist); // reapulsion
+      PVector repulse2 = PVector.mult(PVector.sub(p2.position, p1.position).normalize(), deltaDist); // reapulsion
+
+      p1.position = PVector.add(p1.position, PVector.div(repulse1, p1.mass));
+      p2.position = PVector.add(p2.position, PVector.div(repulse2, p2.mass));
+
+      //p2.position = PVector.add(p2.position, repulse);
+    }
+  }
 }
 
 void checkBoundsV1(Particle p) {

@@ -788,6 +788,12 @@
       "type": "VALUE"
     },
     {
+      "valueBoolean": true,
+      "className": "ToggleNode",
+      "path": "gravity",
+      "type": "VALUE"
+    },
+    {
       "className": "ButtonNode",
       "path": "restart",
       "type": "TRANSIENT"
