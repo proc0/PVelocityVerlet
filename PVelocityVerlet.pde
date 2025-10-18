@@ -8,7 +8,7 @@ int NUM_PARTICLES = 62;
 LazyGui gui;
 Particle[] particles = new Particle[NUM_PARTICLES];
 PVector ZERO_FORCE = new PVector(0, 0);
-PVector GRAVITY = new PVector(0, 500.0);
+PVector GRAVITY = new PVector(0, 982.0);
 PVector defaultForce = ZERO_FORCE;
 
 Grid grid;
@@ -46,8 +46,8 @@ void draw() {
 
   background(50);
   for(Particle particle : particles){
-    checkGridBounds(particle);
     repulse(particle);
+    checkGridBounds(particle);
   }
   for(Particle particle : particles){
     checkCollision(particle);
@@ -62,7 +62,7 @@ public class Particle {
   public PVector acceleration = new PVector(0, 0);
   public PVector cell;
   public color fill = color(204, 153, 0);
-  public float mass = 1.1;
+  public float mass = 1.0;
   public float radius = 5.0;
   public float restitution = 0.8;
   
@@ -100,11 +100,14 @@ void initTest2(int numParticles){
      PVector position = new PVector(random(12, width - 12), random(12, height - 12));
      PVector velocity = new PVector(random(-100, 100), random(-100, 100));
      color fill = color(random(10, 250), random(10, 250), random(10, 250));
+     float radius = random(5, 10);
      
      particles[i] = new Particle();
      particles[i].position = position;
      particles[i].velocity = velocity;
      particles[i].fill = fill;
+     particles[i].radius = radius;
+     particles[i].mass = radius/2;
      
      grid.add(particles[i]);
   }
@@ -240,12 +243,12 @@ void repulse(Particle p1){
     
     if(distance <= collisionDistance){
       //collideV2(p2, p1, collisionDistance - distance - 0.01);
-      float deltaDist = (collisionDistance - distance)/2;
+      float deltaDist = collisionDistance - distance;
       PVector repulse1 = PVector.mult(PVector.sub(p1.position, p2.position).normalize(), deltaDist); // reapulsion
       PVector repulse2 = PVector.mult(PVector.sub(p2.position, p1.position).normalize(), deltaDist); // reapulsion
 
-      p1.position = PVector.add(p1.position, PVector.div(repulse1, p1.mass));
-      p2.position = PVector.add(p2.position, PVector.div(repulse2, p2.mass));
+      p1.position = PVector.add(p1.position, PVector.div(repulse1, p1.mass*p1.mass));
+      p2.position = PVector.add(p2.position, PVector.div(repulse2, p2.mass*p2.mass));
 
       //p2.position = PVector.add(p2.position, repulse);
     }
