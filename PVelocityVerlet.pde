@@ -3,7 +3,7 @@ import com.krab.lazy.*;
 
 int INIT_WIDTH = 640;
 int INIT_HEIGHT = 360;
-int NUM_PARTICLES = 62;
+int NUM_PARTICLES = 112;
 
 LazyGui gui;
 Particle[] particles = new Particle[NUM_PARTICLES];
@@ -45,15 +45,43 @@ void draw() {
   if(gravity) defaultForce = defaultForce == GRAVITY ? ZERO_FORCE : GRAVITY;
 
   background(50);
+  
   for(Particle particle : particles){
-    repulse(particle);
     checkGridBounds(particle);
   }
+  
   for(Particle particle : particles){
     checkCollision(particle);
     move(defaultForce, particle);
     render(particle);
   }
+}
+
+Particle grabbed;
+void mousePressed() {
+    Particle dummy = new Particle();
+    dummy.position = new PVector(mouseX, mouseY);
+    PVector gridPlace = grid.place(dummy);
+    
+    ArrayList<Particle> gridCell = grid.cells[(int)gridPlace.x][(int)gridPlace.y];
+      
+    for(Particle p : gridCell) {
+       if(p.position.x + p.radius > mouseX && p.position.y + p.radius > mouseY && p.position.x - p.radius < mouseX && p.position.y - p.radius < mouseY) {
+          grabbed = p;
+          break;
+       }
+    }
+}
+
+void mouseDragged() {
+  if(grabbed != null){
+    PVector mouseNormal = PVector.sub(grabbed.position, new PVector(mouseX, mouseY)).normalize();
+    move(mouseNormal, grabbed);
+  }
+}
+
+void mouseReleased() {
+   grabbed = null; 
 }
 
 public class Particle {
@@ -76,10 +104,8 @@ void initTest(int numParticles){
   
   grid = new Grid(width, height, 6);
   
-  for(int i = 0; i < numParticles; i++){
-     //PVector position = new PVector(random(width), random(height));
+  for(int i = 0; i < 2; i++){ //<>//
      PVector position = testPositions[i];
-     //PVector velocity = new PVector(random(-1, 1), random(-1, 1));
      PVector velocity = testVelocity[i];
      
      particles[i] = new Particle();
@@ -94,7 +120,7 @@ void initTest(int numParticles){
 
 void initTest2(int numParticles){
   // TODO: abstract radius (6)
-  grid = new Grid(width, height, 6);
+  grid = new Grid(width, height, 12);
   
   for(int i = 0; i < numParticles; i++){
      PVector position = new PVector(random(12, width - 12), random(12, height - 12));
@@ -141,79 +167,18 @@ void checkCollision(Particle p1){
     float collisionDistance = p1.radius + p2.radius;
     
     if(distance <= collisionDistance){
-       collideV5(p1, p2);
-       //collideV4(p1, p2);
-       
-       //collideV3(p1, p2, collisionDistance - distance);
-       //collideV3(p2, p1);
-       
-       //collideV1(p1, p2);
-       //collideV1(p2, p1);
-       
-       //collideV2(p2, p1, collisionDistance - distance - 0.01);
+       collide(p1, p2);
+       repulse(p1, p2);
     }
   }
 }
 
-void collideV1(Particle p1, Particle p2) {
-  float mRatio = (p1.restitution + 1 + p2.mass)/(p1.mass + p2.mass);
-  PVector vDiff = PVector.sub(p1.velocity, p2.velocity);
-  PVector rDiff = PVector.sub(p1.position, p2.position);
-  PVector projection = vDiff.mult(PVector.dot(vDiff, rDiff)/vDiff.magSq());
-  
-  p1.velocity = PVector.add(p1.velocity, projection.mult(mRatio));
-}
-
-void collideV2(Particle p1, Particle p2, float distanceDifference) {
-  PVector normal = PVector.sub(p2.position, p1.position).normalize();
-  PVector vDiff = PVector.sub(p2.velocity, p1.velocity);
-  
-  PVector impulse = PVector.mult(normal, PVector.dot(vDiff, normal));
-  PVector repulse = PVector.mult(normal, distanceDifference); // reapulsion
-  
-  p1.velocity = PVector.add(p1.velocity, PVector.div(impulse, p1.mass));
-  p1.position = PVector.sub(p1.position, PVector.div(repulse, p1.mass));
-  
-  p2.velocity = PVector.sub(p2.velocity, PVector.div(impulse, p2.mass));
-  p2.position = PVector.add(p2.position, PVector.div(repulse, p2.mass));
-}
-
-void collideV3(Particle p1, Particle p2, float deltaDist) {
-  //float distance = PVector.dist(p2.position, p1.position);
-  //float dist = sqrt(p1.position.x*p1.position.x + p1.position.y*p1.position.y);
-  PVector normalDist = PVector.sub(p1.position, p2.position);
-  //PVector normal = PVector.div(normalDist, dist);
-  PVector normal = new PVector(normalDist.y, -normalDist.x);
-  
-  float projection = PVector.dot(p1.velocity, normal.normalize())*2;
-  p1.velocity = PVector.mult(normal, projection).sub(p1.velocity);
-  
-  PVector repulse = PVector.mult(normalDist.normalize(), deltaDist); // reapulsion
-  p1.position = PVector.add(p1.position, PVector.div(repulse, p1.mass));
-}
-
-void collideV4(Particle p1, Particle p2) {
-    PVector v = PVector.sub(p1.position, p2.position);
-    float minDist = p1.radius + p2.radius;
-    float dist = sqrt(v.x*v.x + v.y*v.y);
-    
-    if(dist < minDist){
-      
-      PVector normal = v.div(dist);
-      float totalMass = pow(p1.radius, 2) + pow(p2.radius, 2);
-      float massRatio = pow(p1.radius, 2)/totalMass;
-      float delta = 0.5*(minDist - dist);
-      
-      p1.position = PVector.add(p1.position, PVector.mult(normal, (1-massRatio)*delta));
-      p2.position = PVector.sub(p2.position, PVector.mult(normal, massRatio*delta));
-    }
-}
-
-void collideV5(Particle p1, Particle p2) {
+void collide(Particle p1, Particle p2) {
+  // collision
   PVector normal = PVector.sub(p1.position, p2.position);
   PVector unitNormal = normal.normalize();
-  
   PVector unitTangent = new PVector(-unitNormal.y, unitNormal.x);
+  
   float normalComponent1 = PVector.dot(p1.velocity, unitNormal);
   float tangentComponent1 = PVector.dot(p1.velocity, unitTangent);
   float normalComponent2 = PVector.dot(p2.velocity, unitNormal);
@@ -232,60 +197,32 @@ void collideV5(Particle p1, Particle p2) {
   p2.velocity = PVector.add(normalVectorVelocity2, tangentVectorVelocity2);
 }
 
-void repulse(Particle p1){
-  ArrayList<Particle> neighbors = grid.getAdjacent(p1);
+void repulse(Particle p1, Particle p2){
+  // repulsion
+  float distance = PVector.dist(p1.position, p2.position);
+  float collisionDistance = p1.radius + p2.radius;
   
-  for(Particle p2 : neighbors){
-    if(p1 == p2) continue;
+  float deltaDist = collisionDistance - distance;
+  float deltaRatio1 = p1.radius/deltaDist;
+  float deltaRatio2 = p2.radius/deltaDist;
+  
+  if(deltaRatio1 < deltaRatio2){
+    PVector repulse1 = PVector.mult(PVector.sub(p1.position, p2.position).normalize(), deltaDist); // reapulsion
+    p1.position = PVector.add(p1.position, PVector.div(repulse1, p1.mass));
+  } else if(deltaRatio2 > deltaRatio1){
+    PVector repulse2 = PVector.mult(PVector.sub(p2.position, p1.position).normalize(), deltaDist); // reapulsion
+    p2.position = PVector.add(p2.position, PVector.div(repulse2, p2.mass));
+  } else {
+    PVector repulse1 = PVector.mult(PVector.sub(p1.position, p2.position).normalize(), deltaDist/2); // reapulsion
+    PVector repulse2 = PVector.mult(PVector.sub(p2.position, p1.position).normalize(), deltaDist/2); // reapulsion
     
-    float distance = PVector.dist(p1.position, p2.position);
-    float collisionDistance = p1.radius + p2.radius;
-    
-    if(distance <= collisionDistance){
-      //collideV2(p2, p1, collisionDistance - distance - 0.01);
-      float deltaDist = collisionDistance - distance;
-      PVector repulse1 = PVector.mult(PVector.sub(p1.position, p2.position).normalize(), deltaDist); // reapulsion
-      PVector repulse2 = PVector.mult(PVector.sub(p2.position, p1.position).normalize(), deltaDist); // reapulsion
-
-      p1.position = PVector.add(p1.position, PVector.div(repulse1, p1.mass*p1.mass));
-      p2.position = PVector.add(p2.position, PVector.div(repulse2, p2.mass*p2.mass));
-
-      //p2.position = PVector.add(p2.position, repulse);
-    }
-  }
-}
-
-void checkBoundsV1(Particle p) {
-  Particle newP = new Particle();
- 
-  if(p.position.x - p.radius < 0) {
-    newP.position.x = p.position.x - p.radius;
-    newP.position.y = p.position.y;
-  } else if (p.position.x + p.radius > width) {
-    newP.position.x = p.position.x + p.radius;
-    newP.position.y = p.position.y;
-  }
-  
-  if(p.position.y - p.radius < 0){
-    newP.position.y = p.position.y - p.radius;
-    newP.position.x = p.position.x;
-  } else if (p.position.y + p.radius > height) {
-    newP.position.y = p.position.y + p.radius;
-    newP.position.x = p.position.x;
-  }
-  
-  newP.velocity.x = -p.velocity.x;
-  newP.velocity.y = -p.velocity.y;
-  newP.acceleration = p.acceleration;
-  
-  if(newP.position.x != 0 || newP.position.y != 0){
-    collideV2(p, newP, 0);
+    p1.position = PVector.add(p1.position, PVector.div(repulse1, p1.mass));
+    p2.position = PVector.add(p2.position, PVector.div(repulse2, p2.mass));
   }
   
 }
 
-
-void checkBoundsV2(Particle p) {
+void checkBounds(Particle p) {
   if(p.position.x - p.radius < 0) {
     p.position.x = p.radius;
     p.velocity.x = -p.restitution*p.velocity.x;
@@ -309,7 +246,7 @@ void checkGridBounds(Particle p1){
   int py = (int)p1cell.y;
   
   if(px == 0 || py == 0 || px == grid.numCols-1 || py == grid.numRows-1){
-     checkBoundsV2(p1);
+     checkBounds(p1);
   }
 
   if(px != (int)p1.cell.x || py != (int)p1.cell.y){
