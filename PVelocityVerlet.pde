@@ -1,16 +1,16 @@
 // https://github.com/KrabCode/LazyGui
 import com.krab.lazy.*;
 
-Vector WINDOW = new Vector(640, 360);
-PVector ZERO_FORCE = new PVector(0, 0);
-PVector GRAVITY = new PVector(0, 982.0);
+final Vector WINDOW = new Vector(640, 360);
+final PVector ZERO_FORCE = new PVector(0, 0);
+final PVector GRAVITY = new PVector(0, 982.0);
 PVector FORCE = ZERO_FORCE;
-int POPULATION = 112;
+int POPULATION = 132;
 
 LazyGui gui;
 Grid grid;
-
-Particle[] particles = new Particle[POPULATION];
+Particle[] particles;
+Particle grabbed;
 
 void settings() {
   size(WINDOW.x, WINDOW.y, P2D);
@@ -23,10 +23,12 @@ void setup() {
     .setHideBuiltInFolders(true);
   gui = new LazyGui(this, guiSettings);
   
+  particles = new Particle[POPULATION];
+  grabbed = null;
   // start unpaused
   gui.toggleSet("pause", false);
   // init particles
-  initTest2(POPULATION);
+  initialize(POPULATION);
 }
 
 float deltaTime = 0;
@@ -42,7 +44,7 @@ void draw() {
   boolean restart = gui.button("restart");
   
   if (pause) return;
-  if(restart) initTest2(POPULATION);
+  if(restart) initialize(POPULATION);
   if(gravity) FORCE = GRAVITY; else FORCE = ZERO_FORCE;
 
   background(50);
@@ -61,7 +63,6 @@ void draw() {
   }
 }
 
-Particle grabbed;
 void mousePressed() {
     Vector cell = grid.place(new Particle(mouseX, mouseY));
     ArrayList<Particle> zone = grid.cells[cell.x][cell.y];
@@ -100,13 +101,10 @@ void initTest(int numParticles){
   
   grid = new Grid(width, height, 6);
   
-  for(int i = 0; i < 2; i++){ //<>//
-     PVector position = testPositions[i];
-     PVector velocity = testVelocity[i];
-     
+  for(int i = 0; i < numParticles; i++){
      particles[i] = new Particle();
-     particles[i].position = position;
-     particles[i].velocity = velocity;
+     particles[i].position = testPositions[i];
+     particles[i].velocity = testVelocity[i];
      particles[i].fill = testColors[i];
      
      grid.add(particles[i]);
@@ -114,11 +112,11 @@ void initTest(int numParticles){
   
 }
 
-void initTest2(int numParticles){
+void initialize(int population){
   // TODO: abstract radius (6)
   grid = new Grid(width, height, 12);
   
-  for(int i = 0; i < numParticles; i++){
+  for(int i = 0; i < population; i++){
      PVector position = new PVector(random(12, width - 12), random(12, height - 12));
      PVector velocity = new PVector(random(-100, 100), random(-100, 100));
      color fill = color(random(10, 250), random(10, 250), random(10, 250));
