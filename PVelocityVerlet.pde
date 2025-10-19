@@ -1,20 +1,19 @@
 // https://github.com/KrabCode/LazyGui
 import com.krab.lazy.*;
 
-int INIT_WIDTH = 640;
-int INIT_HEIGHT = 360;
-int NUM_PARTICLES = 112;
-
-LazyGui gui;
-Particle[] particles = new Particle[NUM_PARTICLES];
+Vector WINDOW = new Vector(640, 360);
 PVector ZERO_FORCE = new PVector(0, 0);
 PVector GRAVITY = new PVector(0, 982.0);
-PVector defaultForce = ZERO_FORCE;
+PVector FORCE = ZERO_FORCE;
+int POPULATION = 112;
 
+LazyGui gui;
 Grid grid;
 
+Particle[] particles = new Particle[POPULATION];
+
 void settings() {
-  size(INIT_WIDTH, INIT_HEIGHT, P2D);
+  size(WINDOW.x, WINDOW.y, P2D);
 }
 
 void setup() {
@@ -23,15 +22,17 @@ void setup() {
     .setSideFontSize(10)
     .setHideBuiltInFolders(true);
   gui = new LazyGui(this, guiSettings);
+  
   // start unpaused
   gui.toggleSet("pause", false);
-  
-  initTest2(NUM_PARTICLES);
+  // init particles
+  initTest2(POPULATION);
 }
 
 float deltaTime = 0;
 int lastTime = 0;
 void draw() {
+  // delta time calculation
   int currentTime = millis();
   deltaTime = (currentTime - lastTime) / 1000.0f;
   lastTime = currentTime;
@@ -41,60 +42,55 @@ void draw() {
   boolean restart = gui.button("restart");
   
   if (pause) return;
-  if(restart) initTest2(NUM_PARTICLES);
-  if(gravity) defaultForce = defaultForce == GRAVITY ? ZERO_FORCE : GRAVITY;
+  if(restart) initTest2(POPULATION);
+  if(gravity) FORCE = GRAVITY; else FORCE = ZERO_FORCE;
 
   background(50);
   
   for(Particle particle : particles){
-    checkGridBounds(particle);
-  }
+    contain(particle);
+    collideZone(particle);
+  }    
   
   for(Particle particle : particles){
-    checkCollision(particle);
-    move(defaultForce, particle);
+    if(grabbed != particle){   
+      move(FORCE, particle);
+    }
+    collideZone(particle);
     render(particle);
   }
 }
 
 Particle grabbed;
 void mousePressed() {
-    Particle dummy = new Particle();
-    dummy.position = new PVector(mouseX, mouseY);
-    PVector gridPlace = grid.place(dummy);
+    Vector cell = grid.place(new Particle(mouseX, mouseY));
+    ArrayList<Particle> zone = grid.cells[cell.x][cell.y];
     
-    ArrayList<Particle> gridCell = grid.cells[(int)gridPlace.x][(int)gridPlace.y];
-      
-    for(Particle p : gridCell) {
-       if(p.position.x + p.radius > mouseX && p.position.y + p.radius > mouseY && p.position.x - p.radius < mouseX && p.position.y - p.radius < mouseY) {
+    for(Particle p : zone) {
+       if(p.getRight() > mouseX && p.getBottom() > mouseY && p.getLeft() < mouseX && p.getTop() < mouseY) {
           grabbed = p;
           break;
        }
     }
 }
 
-void mouseDragged() {
-  if(grabbed != null){
-    PVector mouseNormal = PVector.sub(grabbed.position, new PVector(mouseX, mouseY)).normalize();
-    move(mouseNormal, grabbed);
-  }
-}
-
 void mouseReleased() {
    grabbed = null; 
 }
 
-public class Particle {
-  public PVector position = new PVector(0, 0);
-  public PVector velocity = new PVector(0, 0);
-  public PVector acceleration = new PVector(0, 0);
-  public PVector cell;
-  public color fill = color(204, 153, 0);
-  public float mass = 1.0;
-  public float radius = 5.0;
-  public float restitution = 0.8;
-  
-  public Particle() {}
+void mouseDragged() {
+  if(grabbed != null){
+    PVector mousePosition = new PVector(mouseX, mouseY);
+    PVector mouseVelocity = PVector.sub(mousePosition, grabbed.position);
+    grabbed.velocity = PVector.add(grabbed.velocity, mouseVelocity.mult(2));
+    grabbed.position = mousePosition;
+    
+    ArrayList<Particle> zone = grid.getZoneParticles(grabbed);
+   
+    for(Particle particle : zone){
+      collideZone(particle);
+    }
+  }
 }
 
 void initTest(int numParticles){
@@ -139,17 +135,6 @@ void initTest2(int numParticles){
   }
 }
 
-void move(PVector force, Particle particle){
-  float halfDeltaTimeSq = pow(deltaTime, 2)/2;
-  PVector newVelocity =  PVector.mult(particle.velocity, deltaTime);
-  PVector newAcceleration = PVector.mult(particle.acceleration, halfDeltaTimeSq);
-  particle.position = PVector.add(particle.position, PVector.add(newVelocity, newAcceleration));
-  
-  PVector nextAcceleration = PVector.div(force, particle.mass);
-  PVector halfStepVelocity = PVector.add(particle.velocity, PVector.mult(particle.acceleration, deltaTime/2));
-  particle.velocity = PVector.add(halfStepVelocity, PVector.mult(nextAcceleration, deltaTime/2));
-}
-
 void render(Particle particle){
   push();
   fill(particle.fill);
@@ -157,16 +142,28 @@ void render(Particle particle){
   pop();
 }
 
-void checkCollision(Particle p1){
-  ArrayList<Particle> neighbors = grid.getAdjacent(p1);
+void move(PVector force, Particle particle){
+  float halfDeltaTimeSq = pow(deltaTime, 2)/2;
+  PVector newVelocity =  PVector.mult(particle.velocity, deltaTime);
+  PVector newAcceleration = PVector.mult(particle.acceleration, halfDeltaTimeSq);
+  particle.position = PVector.add(particle.position, PVector.add(newVelocity, newAcceleration));
+  particle.acceleration = newAcceleration;
   
-  for(Particle p2 : neighbors){
+  PVector nextAcceleration = PVector.div(force, particle.mass);
+  PVector halfStepVelocity = PVector.add(particle.velocity, PVector.mult(particle.acceleration, deltaTime/2));
+  particle.velocity = PVector.add(halfStepVelocity, PVector.mult(nextAcceleration, deltaTime/2));
+}
+
+void collideZone(Particle p1){
+  ArrayList<Particle> zoneParticles = grid.getZoneParticles(p1);
+  
+  for(Particle p2 : zoneParticles){
     if(p1 == p2) continue;
     
-    float distance = PVector.dist(p1.position, p2.position);
-    float collisionDistance = p1.radius + p2.radius;
+    float particleDistance = PVector.dist(p1.position, p2.position);
+    float collideDistance = p1.radius + p2.radius;
     
-    if(distance <= collisionDistance){
+    if(particleDistance <= collideDistance){
        collide(p1, p2);
        repulse(p1, p2);
     }
@@ -174,7 +171,6 @@ void checkCollision(Particle p1){
 }
 
 void collide(Particle p1, Particle p2) {
-  // collision
   PVector normal = PVector.sub(p1.position, p2.position);
   PVector unitNormal = normal.normalize();
   PVector unitTangent = new PVector(-unitNormal.y, unitNormal.x);
@@ -198,129 +194,183 @@ void collide(Particle p1, Particle p2) {
 }
 
 void repulse(Particle p1, Particle p2){
-  // repulsion
-  float distance = PVector.dist(p1.position, p2.position);
-  float collisionDistance = p1.radius + p2.radius;
+  float particleDistance = PVector.dist(p1.position, p2.position);
+  float collideDistance = p1.radius + p2.radius;
   
-  float deltaDist = collisionDistance - distance;
+  float deltaDist = collideDistance - particleDistance;
   float deltaRatio1 = p1.radius/deltaDist;
   float deltaRatio2 = p2.radius/deltaDist;
   
   if(deltaRatio1 < deltaRatio2){
-    PVector repulse1 = PVector.mult(PVector.sub(p1.position, p2.position).normalize(), deltaDist); // reapulsion
+    PVector repulse1 = PVector.mult(PVector.sub(p1.position, p2.position).normalize(), deltaDist);
     p1.position = PVector.add(p1.position, PVector.div(repulse1, p1.mass));
   } else if(deltaRatio2 > deltaRatio1){
-    PVector repulse2 = PVector.mult(PVector.sub(p2.position, p1.position).normalize(), deltaDist); // reapulsion
+    PVector repulse2 = PVector.mult(PVector.sub(p2.position, p1.position).normalize(), deltaDist);
     p2.position = PVector.add(p2.position, PVector.div(repulse2, p2.mass));
   } else {
-    PVector repulse1 = PVector.mult(PVector.sub(p1.position, p2.position).normalize(), deltaDist/2); // reapulsion
-    PVector repulse2 = PVector.mult(PVector.sub(p2.position, p1.position).normalize(), deltaDist/2); // reapulsion
+    PVector repulse1 = PVector.mult(PVector.sub(p1.position, p2.position).normalize(), deltaDist/2);
+    PVector repulse2 = PVector.mult(PVector.sub(p2.position, p1.position).normalize(), deltaDist/2);
     
     p1.position = PVector.add(p1.position, PVector.div(repulse1, p1.mass));
     p2.position = PVector.add(p2.position, PVector.div(repulse2, p2.mass));
   }
-  
 }
 
-void checkBounds(Particle p) {
-  if(p.position.x - p.radius < 0) {
-    p.position.x = p.radius;
-    p.velocity.x = -p.restitution*p.velocity.x;
-  } else if (p.position.x + p.radius > width) {
-    p.position.x = width - p.radius;
-    p.velocity.x = -p.restitution*p.velocity.x;
+void containerCollide(Particle particle) {
+  if(particle.getLeft() < 0) {
+    particle.position.x = particle.radius;
+    particle.reflectX();
+  } else if (particle.getRight() > width) {
+    particle.position.x = width - particle.radius;
+    particle.reflectX();
   }
   
-  if(p.position.y - p.radius < 0){
-    p.position.y = p.radius;
-    p.velocity.y = -p.restitution*p.velocity.y;
-  } else if (p.position.y + p.radius > height) {
-    p.position.y = height - p.radius;
-    p.velocity.y = -p.restitution*p.velocity.y;
+  if(particle.getTop() < 0){
+    particle.position.y = particle.radius;
+    particle.reflectY();
+  } else if (particle.getBottom() > height) {
+    particle.position.y = height - particle.radius;
+    particle.reflectY();
   }
 }
 
-void checkGridBounds(Particle p1){
-  PVector p1cell = grid.place(p1);
-  int px = (int)p1cell.x;
-  int py = (int)p1cell.y;
-  
-  if(px == 0 || py == 0 || px == grid.numCols-1 || py == grid.numRows-1){
-     checkBounds(p1);
+void contain(Particle particle){
+  Vector cell = grid.place(particle);
+
+  if(cell.x == 0 || cell.y == 0 || cell.x == grid.cellCount.x-1 || cell.y == grid.cellCount.y-1){
+     containerCollide(particle);
   }
 
-  if(px != (int)p1.cell.x || py != (int)p1.cell.y){
-    grid.remove(p1);
-    grid.add(p1);
+  if(cell.x != particle.cell.x || cell.y != particle.cell.y){
+    grid.update(particle);
   } 
 }
 
+class Vector {
+   int x = 0;
+   int y = 0;
+   
+   Vector(int x, int y) {
+      this.x = x;
+      this.y = y;
+   }
+}
+
+public class Particle {
+  public PVector position = new PVector(0, 0);
+  public PVector velocity = new PVector(0, 0);
+  public PVector acceleration = new PVector(0, 0);
+  public Vector cell = new Vector(0, 0);
+  
+  public color fill = color(0, 0, 0);
+  public float mass = 1.0;
+  public float radius = 1.0;
+  public float restitution = 0.8;
+  
+  public Particle() {}
+  
+  public Particle(float x, float y) {
+    this.position = new PVector(x, y);
+  }
+  
+  float getLeft() {
+    return this.position.x - this.radius; 
+  }
+  
+  float getTop() {
+    return this.position.y - this.radius; 
+  }
+  
+  float getRight() {
+    return this.position.x + this.radius; 
+  }
+  
+  float getBottom() {
+    return this.position.y + this.radius; 
+  }
+  
+  void reflectX () {
+    this.velocity.x = -this.restitution*this.velocity.x;
+  }
+  
+  void reflectY () {
+    this.velocity.y = -this.restitution*this.velocity.y;
+  }
+}
+
 class Grid {
-  int cellSize = 1;
-  int numCols = 5;
-  int numRows = 5;
   ArrayList<Particle>[][] cells;
+  Vector cellCount;
+  int cellSize;
   
   Grid(int gridWidth, int gridHeight, int cellSize){
       this.cellSize = cellSize;
-      this.numCols = ceil(gridWidth/cellSize);
-      this.numRows = ceil(gridHeight/cellSize);
-     
-      this.cells = new ArrayList[this.numCols][this.numRows];
-      for(int x = 0; x < this.numCols; x++){
-         for(int y = 0; y < this.numRows; y++){
+      int columns = ceil(gridWidth/cellSize);
+      int rows = ceil(gridHeight/cellSize);
+      
+      this.cellCount = new Vector(columns, rows);
+      this.cells = new ArrayList[columns][rows];
+      for(int x = 0; x < columns; x++){
+         for(int y = 0; y < rows; y++){
             this.cells[x][y] = new ArrayList<Particle>();
          }
       }
   }
   
-  PVector place(Particle p) {
-    int px = (int)p.position.x/this.cellSize;
-    int py = (int)p.position.y/this.cellSize;
+  Vector place(Particle particle) {
+    int x = (int)particle.position.x/this.cellSize;
+    int y = (int)particle.position.y/this.cellSize;
     
-    if(px < 0) px = 0;
-    if(py < 0) py = 0;
-    if(px >= this.numCols) px = this.numCols - 1;
-    if(py >= this.numRows) py = this.numRows - 1;
+    if(x < 0) x = 0;
+    if(y < 0) y = 0;
+    if(x >= this.cellCount.x) x = this.cellCount.x - 1;
+    if(y >= this.cellCount.y) y = this.cellCount.y - 1;
     
-    return new PVector(px, py);
+    return new Vector(x, y);
   }
   
-  void add(Particle p) {
-    PVector cell = this.place(p);
+  void add(Particle particle) {
+    Vector cell = this.place(particle);
     
-    this.cells[(int)cell.x][(int)cell.y].add(p);
-    p.cell = cell;
+    this.cells[cell.x][cell.y].add(particle);
+    particle.cell = cell;
   }
   
-  void remove(Particle p) {
-    ArrayList<Particle> cell = this.cells[(int)p.cell.x][(int)p.cell.y];
+  void remove(Particle particle) {
+    ArrayList<Particle> cell = this.cells[particle.cell.x][particle.cell.y];
     
      for(int i = 0; i < cell.size(); i++){
-        Particle pi = cell.get(i);
-        if(pi == p){
+        Particle p = cell.get(i);
+        if(p == particle){
           cell.remove(i);
           break;
         }
      }
   }
   
-  ArrayList<Particle> getAdjacent(Particle p) {
-    PVector topLeft = new PVector(floor((p.position.x - p.radius)/this.cellSize), floor((p.position.y - p.radius)/this.cellSize)); 
-    PVector bottomRight = new PVector(floor((p.position.x + p.radius)/this.cellSize), floor((p.position.y + p.radius)/this.cellSize)); 
+  void update(Particle particle) {
+     this.remove(particle);
+     this.add(particle);
+  }
+  
+  ArrayList<Particle> getZoneParticles(Particle particle) {
+    int left = floor((particle.getLeft())/this.cellSize);
+    int right = floor((particle.getRight())/this.cellSize);
+    int top = floor((particle.getTop())/this.cellSize);
+    int bottom = floor((particle.getBottom())/this.cellSize);
     
-    ArrayList<Particle> neighbors = new ArrayList<Particle>();
-    for(int i = (int)topLeft.x; i <= (int)bottomRight.x; i++){
-      for(int j = (int)topLeft.y; j <= (int)bottomRight.y; j++){
-        if(i < 0 || j < 0 || i >= this.numCols || j >= this.numRows) continue;
+    ArrayList<Particle> zoneParticles = new ArrayList<Particle>();
+    for(int x = left; x <= right; x++){
+      for(int y = top; y <= bottom; y++){
+        if(x < 0 || y < 0 || x >= this.cellCount.x || y >= this.cellCount.y) continue;
         
-        ArrayList<Particle> c = this.cells[i][j];
-        for(Particle pij : c){
-           if(pij != p) neighbors.add(pij);
+        ArrayList<Particle> cellParticles = this.cells[x][y];
+        for(Particle p : cellParticles){
+           if(p != particle) zoneParticles.add(p);
         }
       }
     }
     
-    return neighbors;
+    return zoneParticles;
   }
 }
