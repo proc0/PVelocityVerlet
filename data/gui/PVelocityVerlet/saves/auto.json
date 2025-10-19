@@ -790,12 +790,18 @@
     {
       "valueBoolean": true,
       "className": "ToggleNode",
+      "path": "random colors",
+      "type": "VALUE"
+    },
+    {
+      "valueBoolean": false,
+      "className": "ToggleNode",
       "path": "gravity",
       "type": "VALUE"
     },
     {
       "className": "ButtonNode",
-      "path": "restart",
+      "path": "RESTART",
       "type": "TRANSIENT"
     }
   ],

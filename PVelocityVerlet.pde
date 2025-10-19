@@ -5,12 +5,23 @@ final Vector WINDOW = new Vector(640, 360);
 final PVector ZERO_FORCE = new PVector(0, 0);
 final PVector GRAVITY = new PVector(0, 982.0);
 PVector FORCE = ZERO_FORCE;
-int POPULATION = 132;
 
 LazyGui gui;
 Grid grid;
 Particle[] particles;
 Particle grabbed;
+ParticleOptions options;
+
+public class ParticleOptions {
+  public int population = 10;
+  public int minRadius = 5;
+  public int maxRadius = 10;
+  public int maxInitVelocity = 100;
+  public int minInitVelocity = -100;
+  public float massRatio = 0.5;
+  public boolean randomColors = true;
+  public color fill = color(255, 255, 255);
+}
 
 void settings() {
   size(WINDOW.x, WINDOW.y, P2D);
@@ -23,12 +34,17 @@ void setup() {
     .setHideBuiltInFolders(true);
   gui = new LazyGui(this, guiSettings);
   
-  particles = new Particle[POPULATION];
-  grabbed = null;
+  // initialize options
+  options = new ParticleOptions();
   // start unpaused
   gui.toggleSet("pause", false);
+  gui.toggleSet("random colors", options.randomColors);
+  
+  // initialize particles
+  particles = new Particle[options.population];
+  grabbed = null;
   // init particles
-  initialize(POPULATION);
+  initialize(options);
 }
 
 float deltaTime = 0;
@@ -38,17 +54,19 @@ void draw() {
   int currentTime = millis();
   deltaTime = (currentTime - lastTime) / 1000.0f;
   lastTime = currentTime;
-  
+  // UI elements
   boolean pause = gui.toggle("pause");
   boolean gravity = gui.toggle("gravity");
-  boolean restart = gui.button("restart");
-  
+  boolean randomColors = gui.toggle("random colors");
+  boolean restart = gui.button("RESTART");
+  // UI handlers
   if (pause) return;
-  if(restart) initialize(POPULATION);
+  if(restart) initialize(options);
   if(gravity) FORCE = GRAVITY; else FORCE = ZERO_FORCE;
-
-  background(50);
+  options.randomColors = randomColors;
   
+  background(50);
+  // update and render
   for(Particle particle : particles){
     contain(particle);
     collideZone(particle);
@@ -94,40 +112,19 @@ void mouseDragged() {
   }
 }
 
-void initTest(int numParticles){
-  PVector[] testPositions = { new PVector(100, 100), new PVector(300, 200) };
-  PVector[] testVelocity = { new PVector(100, 100), new PVector(-100, 0) };
-  color[] testColors = { color(250, 50, 50), color(50, 50, 250) };
+void initialize(ParticleOptions options){
+  grid = new Grid(width, height, options.maxRadius + 2);
   
-  grid = new Grid(width, height, 6);
-  
-  for(int i = 0; i < numParticles; i++){
+  for(int i = 0; i < options.population; i++){
      particles[i] = new Particle();
-     particles[i].position = testPositions[i];
-     particles[i].velocity = testVelocity[i];
-     particles[i].fill = testColors[i];
-     
-     grid.add(particles[i]);
-  }
-  
-}
+     Particle p = particles[i];
 
-void initialize(int population){
-  // TODO: abstract radius (6)
-  grid = new Grid(width, height, 12);
-  
-  for(int i = 0; i < population; i++){
-     PVector position = new PVector(random(12, width - 12), random(12, height - 12));
-     PVector velocity = new PVector(random(-100, 100), random(-100, 100));
-     color fill = color(random(10, 250), random(10, 250), random(10, 250));
-     float radius = random(5, 10);
-     
-     particles[i] = new Particle();
-     particles[i].position = position;
-     particles[i].velocity = velocity;
-     particles[i].fill = fill;
-     particles[i].radius = radius;
-     particles[i].mass = radius/2;
+     p.position = new PVector(random(options.maxRadius, width - options.maxRadius), random(options.maxRadius, height - options.maxRadius));
+     p.velocity = new PVector(random(options.minInitVelocity, options.maxInitVelocity), random(options.minInitVelocity, options.maxInitVelocity));
+     p.fill = options.randomColors ? color(random(10, 250), random(10, 250), random(10, 250)) : color(options.fill);
+     p.radius = random(options.minRadius, options.maxRadius);
+     p.mass = p.radius*options.massRatio;
+     p.extent = p.radius*2;
      
      grid.add(particles[i]);
   }
@@ -136,7 +133,7 @@ void initialize(int population){
 void render(Particle particle){
   push();
   fill(particle.fill);
-  circle(particle.position.x, particle.position.y, particle.radius*2);
+  circle(particle.position.x, particle.position.y, particle.extent);
   pop();
 }
 
@@ -264,6 +261,7 @@ public class Particle {
   public float mass = 1.0;
   public float radius = 1.0;
   public float restitution = 0.8;
+  public float extent = 2.0; // Processing circle method
   
   public Particle() {}
   
