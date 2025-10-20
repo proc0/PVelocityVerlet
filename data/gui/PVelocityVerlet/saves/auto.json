@@ -794,7 +794,7 @@
       "type": "VALUE"
     },
     {
-      "valueBoolean": true,
+      "valueBoolean": false,
       "className": "ToggleNode",
       "path": "gravity",
       "type": "VALUE"
@@ -806,8 +806,8 @@
     }
   ],
   "window": {
-    "posX": 22.0,
-    "posY": 22.0,
+    "posX": 462.0,
+    "posY": 0.0,
     "closed": false,
     "windowSizeX": 154.0
   },

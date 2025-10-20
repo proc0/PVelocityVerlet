@@ -13,7 +13,7 @@ Particle grabbed;
 ParticleOptions options;
 
 public class ParticleOptions {
-  public int population = 100;
+  public int population = 200;
   public int minRadius = 5;
   public int maxRadius = 10;
   public int maxInitVelocity = 100;
@@ -170,10 +170,12 @@ void checkCollision(Particle particle) {
 }
 
 void collideZone(Particle p1){
+  if(!p1.collided) return;
+  
   ArrayList<Particle> zoneParticles = grid.getZoneParticles(p1);
   
   for(Particle p2 : zoneParticles){
-    if(p1 == p2 || (!p1.collided && !p2.collided)) continue;
+    if(p1 == p2 || !p2.collided) continue;
     
     collide(p1, p2);
     
