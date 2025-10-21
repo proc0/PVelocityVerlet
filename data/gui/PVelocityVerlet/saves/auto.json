@@ -788,10 +788,62 @@
       "type": "VALUE"
     },
     {
-      "valueBoolean": true,
+      "valueBoolean": false,
       "className": "ToggleNode",
       "path": "random colors",
       "type": "VALUE"
+    },
+    {
+      "hexString": "FF00CA90",
+      "children": [
+        {
+          "className": "ColorPreviewNode",
+          "path": "color/preview",
+          "type": "TRANSIENT"
+        },
+        {
+          "valueFloat": 0.45214521884918213,
+          "valueFloatPrecision": 0.01,
+          "className": "HueNode",
+          "path": "color/hue",
+          "type": "VALUE"
+        },
+        {
+          "valueFloat": 1.0,
+          "valueFloatPrecision": 0.01,
+          "className": "SaturationNode",
+          "path": "color/sat",
+          "type": "VALUE"
+        },
+        {
+          "valueFloat": 0.7921568751335144,
+          "valueFloatPrecision": 0.01,
+          "className": "BrightnessNode",
+          "path": "color/br",
+          "type": "VALUE"
+        },
+        {
+          "valueFloat": 1.0,
+          "valueFloatPrecision": 0.01,
+          "className": "AlphaNode",
+          "path": "color/alpha",
+          "type": "VALUE"
+        },
+        {
+          "className": "ColorPickerHexNode",
+          "path": "color/hex",
+          "type": "VALUE"
+        }
+      ],
+      "window": {
+        "posX": 198.0,
+        "posY": 22.0,
+        "closed": true,
+        "windowSizeX": 154.0
+      },
+      "className": "ColorPickerFolderNode",
+      "path": "color",
+      "type": "FOLDER"
     },
     {
       "valueBoolean": false,
@@ -800,14 +852,40 @@
       "type": "VALUE"
     },
     {
+      "valueFloat": 10.0,
+      "valueFloatPrecision": 1.0,
+      "className": "SliderIntNode",
+      "path": "min radius",
+      "type": "VALUE"
+    },
+    {
+      "valueFloat": 16.0,
+      "valueFloatPrecision": 1.0,
+      "className": "SliderIntNode",
+      "path": "max radius",
+      "type": "VALUE"
+    },
+    {
+      "valueFloat": 35.0,
+      "valueFloatPrecision": 1.0,
+      "className": "SliderIntNode",
+      "path": "population",
+      "type": "VALUE"
+    },
+    {
+      "className": "ButtonNode",
+      "path": "RESET",
+      "type": "TRANSIENT"
+    },
+    {
       "className": "ButtonNode",
       "path": "RESTART",
       "type": "TRANSIENT"
     }
   ],
   "window": {
-    "posX": 462.0,
-    "posY": 0.0,
+    "posX": 22.0,
+    "posY": 22.0,
     "closed": false,
     "windowSizeX": 154.0
   },

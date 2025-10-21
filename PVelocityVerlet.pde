@@ -12,6 +12,7 @@ Particle[] particles;
 Particle grabbed;
 ParticleOptions options;
 
+// default settings
 public class ParticleOptions {
   public int population = 200;
   public int minRadius = 5;
@@ -20,7 +21,8 @@ public class ParticleOptions {
   public int minInitVelocity = -100;
   public float massRatio = 0.5;
   public boolean randomColors = true;
-  public color fill = color(255, 255, 255);
+  public boolean gravity = false;
+  public color fill = color(132, 180, 202);
 }
 
 void settings() {
@@ -33,18 +35,18 @@ void setup() {
     .setSideFontSize(10)
     .setHideBuiltInFolders(true);
   gui = new LazyGui(this, guiSettings);
-  
   // initialize options
   options = new ParticleOptions();
   // start unpaused
   gui.toggleSet("pause", false);
-  gui.toggleSet("random colors", options.randomColors);
-  
+  options.randomColors = gui.toggle("random colors");
+  options.fill = gui.colorPicker("color").hex;
+  options.gravity = gui.toggle("gravity");
+  options.minRadius = clamp(gui.sliderInt("min radius"), 1, 20);
+  options.maxRadius = clamp(gui.sliderInt("max radius"), 5, 25);
+  options.population = clamp(gui.sliderInt("population"), 2, 200);
   // initialize particles
-  particles = new Particle[options.population];
-  grabbed = null;
-  // init particles
-  initialize(options);
+  initialize();
 }
 
 float deltaTime = 0;
@@ -55,25 +57,54 @@ void draw() {
   deltaTime = (currentTime - lastTime) / 1000.0f;
   lastTime = currentTime;
   
-  // UI elements
-  boolean pause = gui.toggle("pause");
-  boolean gravity = gui.toggle("gravity");
-  boolean randomColors = gui.toggle("random colors");
-  boolean restart = gui.button("RESTART");
-  // UI handlers
+  boolean pause = false;
+  // UI
+  if(!gui.isMouseOutsideGui()){
+    pause = gui.toggle("pause");
+    boolean gravity = gui.toggle("gravity");
+    boolean randomColors = gui.toggle("random colors");
+    PickerColor particleFill = gui.colorPicker("color", options.fill);
+    int minRadius = gui.sliderInt("min radius", options.minRadius, 1, 20);
+    int maxRadius = gui.sliderInt("max radius", options.maxRadius, 5, 25);
+    int population = gui.sliderInt("population", options.population, 2, 500);
+    boolean reset = gui.button("RESET");
+    boolean restart = gui.button("RESTART");
+    
+    if(reset){
+      options = new ParticleOptions();
+      
+      gui.toggleSet("gravity", options.gravity);
+      gui.toggleSet("random colors", options.randomColors);
+      gui.colorPickerSet("color", options.fill);
+      gui.sliderIntSet("min radius", options.minRadius);
+      gui.sliderIntSet("max radius", options.maxRadius);
+      gui.sliderIntSet("population", options.population);
+    }
+    
+    options.gravity = gravity;
+    options.randomColors = randomColors;
+    options.fill = particleFill.hex;
+    options.minRadius = clamp(minRadius, 1, 20);
+    options.maxRadius = clamp(maxRadius, 5, 25);
+    options.population = clamp(population, 2, 500);
+    
+    // UI events
+    if (gravity) {
+      FORCE = GRAVITY; 
+    } else {
+      FORCE = ZERO_FORCE;
+    }
+    
+    if (restart) initialize();
+  }
+   
   if (pause) return;
-  if (restart) initialize(options);
-  if (gravity) FORCE = GRAVITY; else FORCE = ZERO_FORCE;
-  options.randomColors = randomColors;
   
   background(42);
   
   for(Particle particle : particles){
-    if(grabbed != particle){   
+    if(particle != grabbed){   
       move(FORCE, particle);
-    } 
-    if(grabbed != null){
-      checkCollision(grabbed);
     }
     contain(particle);
     collideZone(particle);
@@ -105,14 +136,17 @@ void mouseReleased() {
 void mouseDragged() {
   if(grabbed != null){
     PVector mousePosition = new PVector(mouseX, mouseY);
+    move(ZERO_FORCE, grabbed);
     PVector mouseVelocity = PVector.sub(mousePosition, grabbed.position);
     grabbed.velocity = PVector.add(grabbed.velocity, mouseVelocity);
     grabbed.position = mousePosition;
   }
 }
 
-void initialize(ParticleOptions options){
+void initialize(){
   grid = new Grid(width, height, options.maxRadius + options.minRadius);
+  particles = new Particle[options.population];
+  grabbed = null;
   
   for(int i = 0; i < options.population; i++){
      particles[i] = new Particle();
@@ -133,7 +167,7 @@ void render(Particle particle){
   push();
   fill(particle.fill);
   circle(particle.position.x, particle.position.y, particle.extent);
-  pop();
+  pop(); //<>//
 }
 
 void move(PVector force, Particle particle){
@@ -141,7 +175,7 @@ void move(PVector force, Particle particle){
   PVector newVelocity =  PVector.mult(particle.velocity, deltaTime);
   PVector newAcceleration = PVector.mult(particle.acceleration, halfDeltaTimeSq);
   particle.position = PVector.add(particle.position, PVector.add(newVelocity, newAcceleration));
-  
+      
   checkCollision(particle);
   
   if(particle.collided) return;
@@ -254,13 +288,24 @@ void contain(Particle particle){
   
 }
 
+int clamp(int input, int min, int max) {
+  int result = input > min  && input < max ? input : min;
+  if (result > max) result = max;
+  
+  return result;
+}
+
 class Vector {
    int x = 0;
    int y = 0;
+   int min = 0;
+   int max = 0;
    
    Vector(int x, int y) {
       this.x = x;
       this.y = y;
+      this.min = x;
+      this.max = y;
    }
 }
 
