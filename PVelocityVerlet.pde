@@ -108,8 +108,9 @@ void draw() {
     }
     contain(particle);
     collideZone(particle);
-  }
 
+  }
+  
   for(Particle particle : particles){
     render(particle);
   }
@@ -118,7 +119,7 @@ void draw() {
 void mousePressed() {
     if(grabbed != null) return;
     
-    Vector cell = grid.place(new Particle(mouseX, mouseY));
+    Vector cell = grid.place(mouseX, mouseY);
     ArrayList<Particle> zone = grid.cells[cell.x][cell.y];
     
     for(Particle p : zone) {
@@ -140,11 +141,12 @@ void mouseDragged() {
     PVector mouseVelocity = PVector.sub(mousePosition, grabbed.position);
     grabbed.velocity = PVector.add(grabbed.velocity, mouseVelocity);
     grabbed.position = mousePosition;
+    grid.update(grabbed);
   }
 }
 
 void initialize(){
-  grid = new Grid(width, height, options.maxRadius + options.minRadius);
+  grid = new Grid(width, height, options.maxRadius*3);
   particles = new Particle[options.population];
   grabbed = null;
   
@@ -159,7 +161,9 @@ void initialize(){
      p.mass = p.radius*options.massRatio;
      p.extent = p.radius*2;
      
-     grid.add(particles[i]);
+     grid.add(p);
+     
+     contain(p);
   }
 }
 
@@ -186,19 +190,19 @@ void move(PVector force, Particle particle){
   particle.velocity = PVector.add(halfStepVelocity, PVector.mult(nextAcceleration, deltaTime/2));
 }
 
-void checkCollision(Particle particle) {
-  ArrayList<Particle> zone = grid.getZoneParticles(particle);
+void checkCollision(Particle p1) {
+  ArrayList<Particle> zone = grid.getZoneParticles(p1);
   
-  for(Particle p : zone) {
-    if(p == particle) continue;
+  for(Particle p2 : zone) {
+    if(p2 == p1) continue;
     
-    float particleDistance = PVector.dist(particle.position, p.position);
-    float collideDistance = particle.radius + p.radius;
+    float particleDistance = PVector.dist(p1.position, p2.position);
+    float collideDistance = p1.radius + p2.radius;
     
     if(particleDistance <= collideDistance){
-      repulse(particle, p);
-      particle.collided = true;
-      p.collided = true;
+      repulse(p1, p2);
+      p1.collided = true;
+      p2.collided = true;
     }
   } 
 }
@@ -215,6 +219,7 @@ void collideZone(Particle p1){
     
     p1.collided = false;
     p2.collided = false;
+
   }
 }
 
@@ -253,8 +258,8 @@ void repulse(Particle p1, Particle p2){
   PVector repulse1 = PVector.mult(normal1, deltaDist);
   PVector repulse2 = PVector.mult(normal2, deltaDist);
   
-  p1.position = PVector.add(p1.position, PVector.div(repulse1, pow(p1.mass, 2)));
-  p2.position = PVector.add(p2.position, PVector.div(repulse2, pow(p2.mass, 2)));
+  p1.position = PVector.add(p1.position, PVector.div(repulse1, p1.mass));
+  p2.position = PVector.add(p2.position, PVector.div(repulse2, p2.mass));
 }
 
 void containerCollide(Particle particle) {
@@ -276,7 +281,7 @@ void containerCollide(Particle particle) {
 }
 
 void contain(Particle particle){
-  Vector cell = grid.place(particle);
+  Vector cell = grid.place(particle.position.x, particle.position.y);
 
   if(cell.x == 0 || cell.y == 0 || cell.x == grid.cellCount.x-1 || cell.y == grid.cellCount.y-1){
      containerCollide(particle);
@@ -374,9 +379,9 @@ class Grid {
       }
   }
   
-  Vector place(Particle particle) {
-    int x = (int)particle.position.x/this.cellSize;
-    int y = (int)particle.position.y/this.cellSize;
+  Vector place(float _x, float _y) {
+    int x = floor(_x/this.cellSize);
+    int y = floor(_y/this.cellSize);
     
     if(x < 0) x = 0;
     if(y < 0) y = 0;
@@ -387,7 +392,7 @@ class Grid {
   }
   
   void add(Particle particle) {
-    Vector cell = this.place(particle);
+    Vector cell = this.place(particle.position.x, particle.position.y);
     
     this.cells[cell.x][cell.y].add(particle);
     particle.cell = cell;
@@ -411,23 +416,30 @@ class Grid {
   }
   
   ArrayList<Particle> getZoneParticles(Particle particle) {
-    int left = floor((particle.getLeft())/this.cellSize);
-    int right = floor((particle.getRight())/this.cellSize);
-    int top = floor((particle.getTop())/this.cellSize);
-    int bottom = floor((particle.getBottom())/this.cellSize);
+    Vector topLeft = this.place(particle.getLeft(), particle.getTop());
+    Vector bottomRight = this.place(particle.getRight(), particle.getBottom());
     
     int queryId = this.queryIds++;
     ArrayList<Particle> zoneParticles = new ArrayList<Particle>();
-    for(int x = left; x <= right; x++){
-      for(int y = top; y <= bottom; y++){
-        if(x < 0 || y < 0 || x >= this.cellCount.x || y >= this.cellCount.y) continue;
-        
-        ArrayList<Particle> cellParticles = this.cells[x][y];
+    
+    if(topLeft.x == bottomRight.x && topLeft.y == bottomRight.y){
+        ArrayList<Particle> cellParticles = this.cells[topLeft.x][topLeft.y];
         for(Particle p : cellParticles){
            if(p != particle && p.queryId != queryId) {
              p.queryId = queryId;
              zoneParticles.add(p);
            }
+        }
+    } else {
+      for(int x = topLeft.x; x <= bottomRight.x; x++){
+        for(int y = topLeft.y; y <= bottomRight.y; y++){
+          ArrayList<Particle> cellParticles = this.cells[x][y];
+          for(Particle p : cellParticles){
+            if(p != particle && p.queryId != queryId) {
+              p.queryId = queryId;
+              zoneParticles.add(p);
+            }
+          }
         }
       }
     }
