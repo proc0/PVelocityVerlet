@@ -794,7 +794,7 @@
       "type": "VALUE"
     },
     {
-      "hexString": "FF00CA90",
+      "hexString": "FF84B4CA",
       "children": [
         {
           "className": "ColorPreviewNode",
@@ -802,14 +802,14 @@
           "type": "TRANSIENT"
         },
         {
-          "valueFloat": 0.45214521884918213,
+          "valueFloat": 0.5523809790611267,
           "valueFloatPrecision": 0.01,
           "className": "HueNode",
           "path": "color/hue",
           "type": "VALUE"
         },
         {
-          "valueFloat": 1.0,
+          "valueFloat": 0.3465346395969391,
           "valueFloatPrecision": 0.01,
           "className": "SaturationNode",
           "path": "color/sat",
@@ -846,27 +846,27 @@
       "type": "FOLDER"
     },
     {
-      "valueBoolean": true,
+      "valueBoolean": false,
       "className": "ToggleNode",
       "path": "gravity",
       "type": "VALUE"
     },
     {
-      "valueFloat": 10.0,
+      "valueFloat": 5.0,
       "valueFloatPrecision": 1.0,
       "className": "SliderIntNode",
       "path": "min radius",
       "type": "VALUE"
     },
     {
-      "valueFloat": 16.0,
+      "valueFloat": 10.0,
       "valueFloatPrecision": 1.0,
       "className": "SliderIntNode",
       "path": "max radius",
       "type": "VALUE"
     },
     {
-      "valueFloat": 61.0,
+      "valueFloat": 73.0,
       "valueFloatPrecision": 1.0,
       "className": "SliderIntNode",
       "path": "population",
