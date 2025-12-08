@@ -9,14 +9,19 @@ public class Particle {
   public float radius = 1.0;
   public float restitution = 0.8;
   public float extent = 2.0; // Processing circle method
+  public int id;
   public int queryId = -1;
-  boolean collided = false;
-  boolean grabbed = false;
+  public boolean collided = false;
+  public boolean grabbed = false;
   
   public Particle() {}
   
   public Particle(float x, float y) {
     this.position = new PVector(x, y);
+  }
+  
+  boolean contains(float x, float y) {
+    return getRight() > x && getBottom() > y && getLeft() < x && getTop() < y;  
   }
   
   float getLeft() {

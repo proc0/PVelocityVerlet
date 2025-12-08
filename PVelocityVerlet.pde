@@ -1,11 +1,13 @@
 // https://github.com/KrabCode/LazyGui
 import com.krab.lazy.*;
 
+// constants
 final Vector WINDOW = new Vector(640, 360);
 final PVector ZERO_FORCE = new PVector(0, 0);
 final PVector GRAVITY = new PVector(0, 982.0);
-PVector FORCE = ZERO_FORCE;
 
+// globals
+PVector force = ZERO_FORCE;
 LazyGui gui;
 Grid grid;
 Particle[] particles;
@@ -48,9 +50,9 @@ void draw() {
     }
 
     if (options.gravity) {
-      FORCE = GRAVITY; 
+      force = GRAVITY; 
     } else {
-      FORCE = ZERO_FORCE;
+      force = ZERO_FORCE;
     }
     
     if (options.restart) initialize();
@@ -62,11 +64,11 @@ void draw() {
   
   for(Particle particle : particles){
     if(!particle.grabbed){   
-      move(FORCE, particle);
+      move(force, particle);
     } else {
       moveGrabbed(particle);
     }
-    contain(particle);
+    update(particle);
     collideZone(particle);
   }
 
@@ -79,23 +81,23 @@ void mousePressed() {
     Vector cell = grid.place(mouseX, mouseY);
     ArrayList<Particle> zone = grid.cells[cell.x][cell.y];
     
-    for(Particle p : zone) {
-       if(p.getRight() > mouseX && p.getBottom() > mouseY && p.getLeft() < mouseX && p.getTop() < mouseY) {
-          p.grabbed = true;
+    for(Particle particle : zone) {
+       if(particle.contains(mouseX, mouseY)) {
+          particle.grabbed = true;
           break;
        }
     }
 }
 
-void mouseReleased() {
+void mouseReleased() { //<>//
     Vector cell = grid.place(mouseX, mouseY);
     ArrayList<Particle> zone = grid.cells[cell.x][cell.y];
     
-    for(Particle p : zone) {
-       if(p.grabbed) {
-          p.grabbed = false;
-          moveGrabbed(p);
-          move(ZERO_FORCE, p);
+    for(Particle particle : zone) {
+       if(particle.grabbed) {
+          particle.grabbed = false;
+          moveGrabbed(particle);
+          move(ZERO_FORCE, particle);
           break;
        }
     }
@@ -108,7 +110,8 @@ void initialize(){
   for(int i = 0; i < options.population; i++){
      particles[i] = new Particle();
      Particle p = particles[i];
-
+      
+     p.id = i;
      p.position = new PVector(random(options.maxRadius, width - options.maxRadius), random(options.maxRadius, height - options.maxRadius));
      p.velocity = new PVector(random(options.minInitVelocity, options.maxInitVelocity), random(options.minInitVelocity, options.maxInitVelocity));
      p.fill = options.randomColors ? color(random(10, 250), random(10, 250), random(10, 250)) : color(options.fill);
@@ -118,7 +121,7 @@ void initialize(){
      
      grid.add(p);
      
-     contain(p);
+     update(p);
   }
 }
 
@@ -132,7 +135,7 @@ void moveGrabbed(Particle grabbed) {
   PVector mouseVelocity = PVector.sub(mousePosition, grabbed.position);
   grabbed.velocity = PVector.add(grabbed.velocity, mouseVelocity);
   grabbed.position = mousePosition;
-  checkCollision(grabbed);
+  repulseZone(grabbed);
 }
 
 void move(PVector force, Particle particle){
@@ -141,7 +144,7 @@ void move(PVector force, Particle particle){
   PVector newAcceleration = PVector.mult(particle.acceleration, halfDeltaTimeSq);
   particle.position = PVector.add(particle.position, PVector.add(newVelocity, newAcceleration));
       
-  checkCollision(particle);
+  repulseZone(particle);
   
   if(particle.collided) return;
   
@@ -151,7 +154,7 @@ void move(PVector force, Particle particle){
   particle.velocity = PVector.add(halfStepVelocity, PVector.mult(nextAcceleration, deltaTime/2));
 }
 
-void checkCollision(Particle p1) {
+void repulseZone(Particle p1) {
   ArrayList<Particle> zone = grid.getZoneParticles(p1);
   
   for(Particle p2 : zone) {
@@ -231,7 +234,7 @@ void collide(Particle p1, Particle p2) {
   }
 }
 
-void collideContainer(Particle particle) {
+void contain(Particle particle) {
   if(particle.getLeft() < 0) {
     particle.position.x = particle.radius;
     particle.reflectX();
@@ -249,11 +252,11 @@ void collideContainer(Particle particle) {
   }
 }
 
-void contain(Particle particle){
+void update(Particle particle){
   Vector cell = grid.place(particle.position.x, particle.position.y);
 
   if(cell.x == 0 || cell.y == 0 || cell.x == grid.cellCount.x-1 || cell.y == grid.cellCount.y-1){
-    collideContainer(particle);
+    contain(particle);
   }
 
   if(cell.x != particle.cell.x || cell.y != particle.cell.y){

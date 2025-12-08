@@ -788,13 +788,13 @@
       "type": "VALUE"
     },
     {
-      "valueBoolean": false,
+      "valueBoolean": true,
       "className": "ToggleNode",
       "path": "random colors",
       "type": "VALUE"
     },
     {
-      "hexString": "FF84B4CA",
+      "hexString": "FFD6B3A3",
       "children": [
         {
           "className": "ColorPreviewNode",
@@ -802,21 +802,21 @@
           "type": "TRANSIENT"
         },
         {
-          "valueFloat": 0.5523809790611267,
+          "valueFloat": 0.05228757858276367,
           "valueFloatPrecision": 0.01,
           "className": "HueNode",
           "path": "color/hue",
           "type": "VALUE"
         },
         {
-          "valueFloat": 0.3465346395969391,
+          "valueFloat": 0.23831775784492493,
           "valueFloatPrecision": 0.01,
           "className": "SaturationNode",
           "path": "color/sat",
           "type": "VALUE"
         },
         {
-          "valueFloat": 0.7921568751335144,
+          "valueFloat": 0.8392156958580017,
           "valueFloatPrecision": 0.01,
           "className": "BrightnessNode",
           "path": "color/br",
@@ -846,7 +846,7 @@
       "type": "FOLDER"
     },
     {
-      "valueBoolean": false,
+      "valueBoolean": true,
       "className": "ToggleNode",
       "path": "gravity",
       "type": "VALUE"
@@ -866,7 +866,7 @@
       "type": "VALUE"
     },
     {
-      "valueFloat": 73.0,
+      "valueFloat": 200.0,
       "valueFloatPrecision": 1.0,
       "className": "SliderIntNode",
       "path": "population",
