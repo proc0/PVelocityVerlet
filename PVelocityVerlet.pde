@@ -132,47 +132,31 @@ void initialize(){
      update(p);
   }
   
-  for(int j=0; j<10; j++){
+  // example connected particles
+  // TODO: add method to connected to a mesh?
+  for(int j=0; j<4; j++){
     particles[j].isConnected = true;
     particles[j].connections.append(j+1);
-    //for(int k=j; k<3; k++){
-    //  particles[j].connections.append(k);
-    //}
+    particles[j].restLength = 50;
   }
-  //particles[0].isConnected = true;
-  //particles[1].isConnected = true;
-  //particles[2].isConnected = true;
-  //particles[3].isConnected = true;
-
-  //particles[0].connections.append(1);
-  //particles[0].connections.append(3);
-
-  //particles[1].connections.append(0);
-  //particles[1].connections.append(2);
-  //particles[1].connections.append(3);
   
-  //particles[2].connections.append(0);
-  //particles[2].connections.append(1);
-  //particles[2].connections.append(3);
-  
-  //particles[3].connections.append(2);
-  //particles[3].connections.append(0);
-  
-  //particles[0].fill = color(0, 0, 0);
-  //particles[1].fill = color(0, 0, 0);
-  //particles[2].fill = color(0, 0, 0);
-  //particles[3].fill = color(0, 0, 0);
+  for(int k=4; k<7; k++){
+    particles[k].isConnected = true;
+    particles[k].connections.append(k-4);
+    particles[k].connections.append(k+1);
+    particles[k].restLength = 50;
+  }
 }
 
 void render(Particle particle){
-  fill(particle.fill);
-  circle(particle.position.x, particle.position.y, particle.extent);
   if(particle.isConnected){
     for(int pid : particle.connections){
       Particle connected = particles[pid];
       line(particle.position.x, particle.position.y, connected.position.x, connected.position.y);
     }
   }
+  fill(particle.fill);
+  circle(particle.position.x, particle.position.y, particle.extent);
 }
 
 void moveGrabbed(Particle grabbed) {
@@ -215,11 +199,6 @@ void updateSpring(Particle particle){
     connected.velocity.add(PVector.div(springForce, connected.mass));
     move(oppositeForce, particle);
     move(springForce, connected);
-    
-    //particle.velocity.add(PVector.div(PVector.mult(dampingForce, -1), particle.mass));
-    //connected.velocity.add(PVector.div(dampingForce, connected.mass));
-    //move(PVector.mult(dampingForce, -1), particle);
-    //move(dampingForce, connected);
   }
 }
 

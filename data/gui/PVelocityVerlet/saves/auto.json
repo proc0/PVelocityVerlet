@@ -794,7 +794,7 @@
       "type": "VALUE"
     },
     {
-      "hexString": "FFD6B3A3",
+      "hexString": "FF84B4CA",
       "children": [
         {
           "className": "ColorPreviewNode",
@@ -802,21 +802,21 @@
           "type": "TRANSIENT"
         },
         {
-          "valueFloat": 0.05228757858276367,
+          "valueFloat": 0.5523809790611267,
           "valueFloatPrecision": 0.01,
           "className": "HueNode",
           "path": "color/hue",
           "type": "VALUE"
         },
         {
-          "valueFloat": 0.23831775784492493,
+          "valueFloat": 0.3465346395969391,
           "valueFloatPrecision": 0.01,
           "className": "SaturationNode",
           "path": "color/sat",
           "type": "VALUE"
         },
         {
-          "valueFloat": 0.8392156958580017,
+          "valueFloat": 0.7921568751335144,
           "valueFloatPrecision": 0.01,
           "className": "BrightnessNode",
           "path": "color/br",
@@ -866,7 +866,7 @@
       "type": "VALUE"
     },
     {
-      "valueFloat": 55.0,
+      "valueFloat": 200.0,
       "valueFloatPrecision": 1.0,
       "className": "SliderIntNode",
       "path": "population",
