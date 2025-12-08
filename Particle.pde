@@ -3,7 +3,11 @@ public class Particle {
   public PVector velocity = new PVector(0, 0);
   public PVector acceleration = new PVector(0, 0);
   public Vector cell = new Vector(0, 0);
-  
+  public IntList connections = new IntList();
+  public float restLength = random(20, 30);
+  public float stiffness = 1;
+  public float damping = 1;
+    
   public color fill = color(0, 0, 0);
   public float mass = 1.0;
   public float radius = 1.0;
@@ -11,6 +15,7 @@ public class Particle {
   public float extent = 2.0; // Processing circle method
   public int id;
   public int queryId = -1;
+  public boolean isConnected = false;
   public boolean collided = false;
   public boolean grabbed = false;
   

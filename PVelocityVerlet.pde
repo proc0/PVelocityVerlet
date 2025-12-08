@@ -63,7 +63,11 @@ void draw() {
   background(42);
   
   for(Particle particle : particles){
-    if(!particle.grabbed){   
+    if(!particle.grabbed){
+      if(particle.isConnected){
+        updateSpring(particle);
+      }
+      
       move(force, particle);
     } else {
       moveGrabbed(particle);
@@ -97,7 +101,11 @@ void mouseReleased() { //<>//
        if(particle.grabbed) {
           particle.grabbed = false;
           moveGrabbed(particle);
-          move(ZERO_FORCE, particle);
+          if(particle.isConnected){
+            updateSpring(particle);
+          } else {
+            move(ZERO_FORCE, particle);
+          }
           break;
        }
     }
@@ -118,16 +126,53 @@ void initialize(){
      p.radius = random(options.minRadius, options.maxRadius);
      p.mass = p.radius*options.massRatio;
      p.extent = p.radius*2;
-     
+
      grid.add(p);
      
      update(p);
   }
+  
+  for(int j=0; j<10; j++){
+    particles[j].isConnected = true;
+    particles[j].connections.append(j+1);
+    //for(int k=j; k<3; k++){
+    //  particles[j].connections.append(k);
+    //}
+  }
+  //particles[0].isConnected = true;
+  //particles[1].isConnected = true;
+  //particles[2].isConnected = true;
+  //particles[3].isConnected = true;
+
+  //particles[0].connections.append(1);
+  //particles[0].connections.append(3);
+
+  //particles[1].connections.append(0);
+  //particles[1].connections.append(2);
+  //particles[1].connections.append(3);
+  
+  //particles[2].connections.append(0);
+  //particles[2].connections.append(1);
+  //particles[2].connections.append(3);
+  
+  //particles[3].connections.append(2);
+  //particles[3].connections.append(0);
+  
+  //particles[0].fill = color(0, 0, 0);
+  //particles[1].fill = color(0, 0, 0);
+  //particles[2].fill = color(0, 0, 0);
+  //particles[3].fill = color(0, 0, 0);
 }
 
 void render(Particle particle){
   fill(particle.fill);
   circle(particle.position.x, particle.position.y, particle.extent);
+  if(particle.isConnected){
+    for(int pid : particle.connections){
+      Particle connected = particles[pid];
+      line(particle.position.x, particle.position.y, connected.position.x, connected.position.y);
+    }
+  }
 }
 
 void moveGrabbed(Particle grabbed) {
@@ -152,6 +197,30 @@ void move(PVector force, Particle particle){
   PVector nextAcceleration = PVector.div(force, particle.mass);
   PVector halfStepVelocity = PVector.add(particle.velocity, PVector.mult(particle.acceleration, deltaTime/2));
   particle.velocity = PVector.add(halfStepVelocity, PVector.mult(nextAcceleration, deltaTime/2));
+}
+
+void updateSpring(Particle particle){
+  for(int pid : particle.connections) {
+    Particle connected = particles[pid];
+    
+    PVector distance = PVector.sub(particle.position, connected.position);
+    float distention = distance.mag() - particle.restLength;
+    float restoreForce = particle.stiffness * distention; // F = -kx
+    PVector repulseForce = PVector.mult(PVector.div(distance, distance.mag()), restoreForce);
+    PVector dampingForce = PVector.mult(PVector.sub(particle.velocity, connected.velocity), particle.damping);
+    PVector springForce = PVector.add(repulseForce, dampingForce);
+    PVector oppositeForce = PVector.mult(springForce, -1);
+    
+    particle.velocity.add(PVector.div(oppositeForce, particle.mass));
+    connected.velocity.add(PVector.div(springForce, connected.mass));
+    move(oppositeForce, particle);
+    move(springForce, connected);
+    
+    //particle.velocity.add(PVector.div(PVector.mult(dampingForce, -1), particle.mass));
+    //connected.velocity.add(PVector.div(dampingForce, connected.mass));
+    //move(PVector.mult(dampingForce, -1), particle);
+    //move(dampingForce, connected);
+  }
 }
 
 void repulseZone(Particle p1) {

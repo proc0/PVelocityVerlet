@@ -846,7 +846,7 @@
       "type": "FOLDER"
     },
     {
-      "valueBoolean": true,
+      "valueBoolean": false,
       "className": "ToggleNode",
       "path": "gravity",
       "type": "VALUE"
@@ -866,7 +866,7 @@
       "type": "VALUE"
     },
     {
-      "valueFloat": 200.0,
+      "valueFloat": 55.0,
       "valueFloatPrecision": 1.0,
       "className": "SliderIntNode",
       "path": "population",
@@ -884,7 +884,7 @@
     }
   ],
   "window": {
-    "posX": 22.0,
+    "posX": 44.0,
     "posY": 22.0,
     "closed": false,
     "windowSizeX": 154.0
